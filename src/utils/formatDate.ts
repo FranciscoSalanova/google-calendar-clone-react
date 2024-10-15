@@ -1,3 +1,6 @@
-export const formatDate = (date, options) => {
+export const formatDate = (
+  date: Date,
+  options?: Intl.DateTimeFormatOptions
+) => {
   return new Intl.DateTimeFormat(undefined, options).format(date)
 }
