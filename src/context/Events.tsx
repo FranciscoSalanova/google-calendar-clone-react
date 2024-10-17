@@ -1,4 +1,4 @@
-import { createContext } from "react"
+import { createContext, useEffect, useState } from "react"
 import { EVENT_COLORS } from "./useEvent"
 
 export type Event = {

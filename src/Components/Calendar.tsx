@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useId, useMemo, useState } from "react"
 import { formatDate } from "../utils/formatDate"
 import {
   addMonths,
@@ -8,17 +8,28 @@ import {
   endOfWeek,
   isBefore,
   isSameMonth,
+  isToday,
   startOfMonth,
   startOfWeek,
   subMonths,
 } from "date-fns"
 import { cc } from "../utils/cc"
+import { Modal, type ModalProps } from "./Modal"
+import type { UnionOmit } from "../utils/types"
 
 type CalendarDayProps = {
   day: Date
   showWeekName: boolean
   selectedMonth: Date
 }
+
+type EventFormModalProps = {
+  onSubmit: (event: UnionOmit<Event, "id">) => void
+} & (
+  | { onDelete: () => void; event: Event; date?: never }
+  | { onDelete?: never; event?: never; date: Date }
+) &
+  Omit<ModalProps, "children">
 
 export const Calendar = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date())
@@ -66,6 +77,7 @@ export const Calendar = () => {
           )
         })}
       </div>
+      <EventFormModal />
     </div>
   )
 }
@@ -93,8 +105,15 @@ const CalendarDay = ({
             {formatDate(day, { weekday: "short" })}
           </div>
         )}
-        <div className="day-number">{formatDate(day, { day: "numeric" })}</div>
-        <button className="add-event-btn">+</button>
+        <div className={cc("day-number", isToday(day) && "today")}>
+          {formatDate(day, { day: "numeric" })}
+        </div>
+        <button
+          className="add-event-btn"
+          onClick={() => setIsNewEventModalOpen(true)}
+        >
+          +
+        </button>
       </div>
     </div>
   )
@@ -116,4 +135,11 @@ const CalendarEvent = () => {
       </button>
     </div>
   )
+}
+
+const EventFormModal = ({ event }: EventFormModalProps) => {
+  const isNew = event === null
+  const formId = useId()
+
+  return <Modal />
 }
