@@ -1,5 +1,6 @@
-import { createContext, useEffect, useState } from "react"
+import { createContext, ReactNode, useEffect, useState } from "react"
 import { EVENT_COLORS } from "./useEvent"
+import { UnionOmit } from "../utils/types"
 
 export type Event = {
   id: string
@@ -13,6 +14,8 @@ export type Event = {
 
 type EventsContext = {
   events: Event[]
+  addEvent: (event: UnionOmit<Event, "id">) => void
+  updateEvent: (id: string, eventDetails: UnionOmit<Event, "id">) => void
 }
 
 type EventsProviderProps = {
@@ -24,7 +27,23 @@ export const Context = createContext<EventsContext | null>(null)
 export const EventsProvider = ({ children }: EventsProviderProps) => {
   const [events, setEvents] = useLocalStorage("EVENTS", [])
 
-  return <Context.Provider value={events}>{children}</Context.Provider>
+  const addEvent = (eventDetails: UnionOmit<Event, "id">) => {
+    setEvents((e) => [...e, { ...eventDetails, id: crypto.randomUUID() }])
+  }
+
+  const updateEvent = (id: string, eventDetails: UnionOmit<Event, "id">) => {
+    setEvents((e) => {
+      return e.map((event) => {
+        return event.id === id ? { id, ...eventDetails } : event
+      })
+    })
+  }
+
+  return (
+    <Context.Provider value={{ events, addEvent, updateEvent }}>
+      {children}
+    </Context.Provider>
+  )
 }
 
 const useLocalStorage = (key: string, initialValue: Event[]) => {

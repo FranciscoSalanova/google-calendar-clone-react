@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react"
+import { FormEvent, useId, useMemo, useRef, useState } from "react"
 import { formatDate } from "../utils/formatDate"
 import {
   addMonths,
@@ -16,6 +16,8 @@ import {
 import { cc } from "../utils/cc"
 import { Modal, type ModalProps } from "./Modal"
 import type { UnionOmit } from "../utils/types"
+import { Event } from "../context/Events"
+import { EVENT_COLORS } from "../context/useEvent"
 
 type CalendarDayProps = {
   day: Date
@@ -77,7 +79,12 @@ export const Calendar = () => {
           )
         })}
       </div>
-      <EventFormModal />
+      <EventFormModal
+        event={event}
+        onSubmit={(e) => {
+          updateEvent(event.id, e)
+        }}
+      />
     </div>
   )
 }
@@ -137,9 +144,148 @@ const CalendarEvent = () => {
   )
 }
 
-const EventFormModal = ({ event }: EventFormModalProps) => {
+const EventFormModal = ({
+  onSubmit,
+  event,
+  date,
+  ...modalProps
+}: EventFormModalProps) => {
   const isNew = event === null
   const formId = useId()
+  const nameRef = useRef<HTMLInputElement>(null)
+  const endTimeRef = useRef<HTMLInputElement>(null)
+  const [isAllDayChecked, setIsAllDayChecked] = useState(event?.allDay || false)
+  const [selectedColor, setSelectedColor] = useState(
+    event?.color || EVENT_COLORS[0]
+  )
+  const [startTime, setStartTime] = useState(event?.startTime || "")
 
-  return <Modal />
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+
+    const name = nameRef.current?.value
+    const endTime = endTimeRef.current?.value
+
+    if (name == null || name === "") return
+
+    const commonProps = {
+      name,
+      date: date || event?.date,
+      color: selectedColor,
+    }
+
+    let newEvent: UnionOmit<Event, "id">
+
+    if (isAllDayChecked) {
+      newEvent = {
+        ...commonProps,
+        allDay: true,
+      }
+    } else {
+      if (
+        startTime == null ||
+        startTime === "" ||
+        endTime == null ||
+        endTime === ""
+      ) {
+        return
+      } else {
+        newEvent = {
+          ...commonProps,
+          allDay: false,
+          startTime,
+          endTime,
+        }
+      }
+    }
+
+    modalProps.onClose()
+    onSubmit(newEvent)
+  }
+
+  return (
+    <Modal {...modalProps}>
+      <div className="modal-title">
+        <div>{isNew ? "Add" : "Edit"} Event</div>
+        <small>{formatDate(date || event?.date, { dateStyle: "short" })}</small>
+        <button className="close-btn" onClick={modalProps.onClose}>
+          &times;
+        </button>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor={`${formId}-name`}>Name</label>
+          <input
+            type="text"
+            id={`${formId}-name`}
+            ref={nameRef}
+            defaultValue={event?.name}
+          />
+        </div>
+        <div className="form-group checkbox">
+          <input
+            checked={isAllDayChecked}
+            type="checkbox"
+            id={`${formId}-all-day`}
+            onClick={(e) => setIsAllDayChecked(e.target.checked)}
+          />
+          <label htmlFor={`${formId}-all-day`}>All Day?</label>
+        </div>
+        <div className="row">
+          <div className="form-group">
+            <label htmlFor="start-time">Start Time</label>
+            <input type="time" name="start-time" id="start-time" />
+          </div>
+          <div className="form-group">
+            <label htmlFor="end-time">End Time</label>
+            <input type="time" name="end-time" id="end-time" />
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Color</label>
+          <div className="row left">
+            <input
+              type="radio"
+              name="color"
+              value="blue"
+              id="blue"
+              checked
+              className="color-radio"
+            />
+            <label htmlFor="blue">
+              <span className="sr-only">Blue</span>
+            </label>
+            <input
+              type="radio"
+              name="color"
+              value="red"
+              id="red"
+              className="color-radio"
+            />
+            <label htmlFor="red">
+              <span className="sr-only">Red</span>
+            </label>
+            <input
+              type="radio"
+              name="color"
+              value="green"
+              id="green"
+              className="color-radio"
+            />
+            <label htmlFor="green">
+              <span className="sr-only">Green</span>
+            </label>
+          </div>
+        </div>
+        <div className="row">
+          <button className="btn btn-success" type="submit">
+            Add
+          </button>
+          <button className="btn btn-delete" type="button">
+            Delete
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
 }
