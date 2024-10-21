@@ -17,12 +17,14 @@ import { cc } from "../utils/cc"
 import { Modal, type ModalProps } from "./Modal"
 import type { UnionOmit } from "../utils/types"
 import { Event } from "../context/Events"
-import { EVENT_COLORS } from "../context/useEvent"
+import { EVENT_COLORS, useEvents } from "../context/useEvent"
+import { OverflowContainer } from "./OverflowContainer"
 
 type CalendarDayProps = {
   day: Date
   showWeekName: boolean
   selectedMonth: Date
+  events: Event[]
 }
 
 type EventFormModalProps = {
@@ -93,10 +95,29 @@ const CalendarDay = ({
   day,
   showWeekName,
   selectedMonth,
+  events,
 }: CalendarDayProps) => {
   const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false)
   const [isViewMoreEventsModalOpen, setIsViewMoreEventsModalOpen] =
     useState(false)
+
+  const { addEvent } = useEvents()
+
+  const sortedEvents = useMemo(() => {
+    const timeToNumber = (time: string) => parseFloat(time.replace(":", "."))
+
+    return [...events].sort((a, b) => {
+      if (a.allDay && b.allDay) {
+        return 0
+      } else if (a.allDay) {
+        return -1
+      } else if (b.allDay) {
+        return 1
+      } else {
+        return timeToNumber(a.startTime) - timeToNumber(b.startTime)
+      }
+    })
+  }, [events])
 
   return (
     <div
@@ -122,6 +143,13 @@ const CalendarDay = ({
           +
         </button>
       </div>
+      {sortedEvents.length > 0 && <OverflowContainer />}
+      <EventFormModal
+        date={day}
+        isOpen={isNewEventModalOpen}
+        onClose={() => setIsNewEventModalOpen(false)}
+        onSubmit={addEvent}
+      />
     </div>
   )
 }
