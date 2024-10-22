@@ -1,4 +1,4 @@
-import { FormEvent, useId, useMemo, useRef, useState } from "react"
+import { FormEvent, Fragment, useId, useMemo, useRef, useState } from "react"
 import { formatDate } from "../utils/formatDate"
 import {
   addMonths,
@@ -7,6 +7,7 @@ import {
   endOfMonth,
   endOfWeek,
   isBefore,
+  isSameDay,
   isSameMonth,
   isToday,
   startOfMonth,
@@ -45,6 +46,8 @@ export const Calendar = () => {
     return eachDayOfInterval({ start: firstWeekStart, end: lastWeekEnd })
   }, [selectedMonth])
 
+  const { events } = useEvents()
+
   return (
     <div className="calendar">
       <div className="header">
@@ -77,16 +80,11 @@ export const Calendar = () => {
               day={day}
               showWeekName={index < 7}
               selectedMonth={selectedMonth}
+              events={events.filter((event) => isSameDay(day, event.date))}
             />
           )
         })}
       </div>
-      <EventFormModal
-        event={event}
-        onSubmit={(e) => {
-          updateEvent(event.id, e)
-        }}
-      />
     </div>
   )
 }
@@ -143,7 +141,14 @@ const CalendarDay = ({
           +
         </button>
       </div>
-      {sortedEvents.length > 0 && <OverflowContainer />}
+      {sortedEvents.length > 0 && (
+        <OverflowContainer
+          className="events"
+          items={sortedEvents}
+          getKey={(event) => event.id}
+          renderItem={(event) => <CalendarEvent event={event} />}
+        />
+      )}
       <EventFormModal
         date={day}
         isOpen={isNewEventModalOpen}
@@ -154,26 +159,40 @@ const CalendarDay = ({
   )
 }
 
-const CalendarEvent = () => {
+const CalendarEvent = ({ event }: { event: Event }) => {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const { updateEvent, deleteEvent } = useEvents()
+
   return (
-    <div className="events">
-      <button className="all-day-event blue event">
-        <div className="event-name">Short</div>
+    <>
+      <button
+        className={cc("event", event.color, event.allDay && "all-day-event")}
+      >
+        {event.allDay ? (
+          <div className="event-name">Short</div>
+        ) : (
+          <>
+            <div className="color-dot blue"></div>
+            <div className="event-time">7am</div>
+            <div className="event-name">Event Name</div>
+          </>
+        )}
       </button>
-      <button className="all-day-event green event">
+      {/* <button className="all-day-event green event">
         <div className="event-name">Long Event Name That Just Keeps Going</div>
       </button>
       <button className="event">
         <div className="color-dot blue"></div>
         <div className="event-time">7am</div>
         <div className="event-name">Event Name</div>
-      </button>
-    </div>
+      </button> */}
+    </>
   )
 }
 
 const EventFormModal = ({
   onSubmit,
+  onDelete,
   event,
   date,
   ...modalProps
@@ -255,63 +274,66 @@ const EventFormModal = ({
             checked={isAllDayChecked}
             type="checkbox"
             id={`${formId}-all-day`}
-            onClick={(e) => setIsAllDayChecked(e.target.checked)}
+            onChange={(e) => setIsAllDayChecked(e.target.checked)}
           />
           <label htmlFor={`${formId}-all-day`}>All Day?</label>
         </div>
         <div className="row">
           <div className="form-group">
-            <label htmlFor="start-time">Start Time</label>
-            <input type="time" name="start-time" id="start-time" />
+            <label htmlFor={`${formId}-start-time`}>Start Time</label>
+            <input
+              type="time"
+              id={`${formId}-start-time`}
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              required={!isAllDayChecked}
+              disabled={isAllDayChecked}
+            />
           </div>
           <div className="form-group">
-            <label htmlFor="end-time">End Time</label>
-            <input type="time" name="end-time" id="end-time" />
+            <label htmlFor={`${formId}-end-time`}>End Time</label>
+            <input
+              type="time"
+              id={`${formId}-end-time`}
+              ref={endTimeRef}
+              required={!isAllDayChecked}
+              disabled={isAllDayChecked}
+              min={startTime}
+              defaultValue={event?.startTime}
+            />
           </div>
         </div>
         <div className="form-group">
           <label>Color</label>
           <div className="row left">
-            <input
-              type="radio"
-              name="color"
-              value="blue"
-              id="blue"
-              checked
-              className="color-radio"
-            />
-            <label htmlFor="blue">
-              <span className="sr-only">Blue</span>
-            </label>
-            <input
-              type="radio"
-              name="color"
-              value="red"
-              id="red"
-              className="color-radio"
-            />
-            <label htmlFor="red">
-              <span className="sr-only">Red</span>
-            </label>
-            <input
-              type="radio"
-              name="color"
-              value="green"
-              id="green"
-              className="color-radio"
-            />
-            <label htmlFor="green">
-              <span className="sr-only">Green</span>
-            </label>
+            {EVENT_COLORS.map((color) => {
+              return (
+                <Fragment key={color}>
+                  <input
+                    type="radio"
+                    value={color}
+                    id={`${formId}-${color}`}
+                    className="color-radio"
+                    checked={selectedColor === color}
+                    onChange={() => setSelectedColor(color)}
+                  />
+                  <label htmlFor={`${formId}-${color}`}>
+                    <span className="sr-only">Blue</span>
+                  </label>
+                </Fragment>
+              )
+            })}
           </div>
         </div>
         <div className="row">
           <button className="btn btn-success" type="submit">
-            Add
+            {isNew ? "Add" : "Edit"}
           </button>
-          <button className="btn btn-delete" type="button">
-            Delete
-          </button>
+          {onDelete != null && (
+            <button onClick={onDelete} className="btn btn-delete" type="button">
+              Delete
+            </button>
+          )}
         </div>
       </form>
     </Modal>
