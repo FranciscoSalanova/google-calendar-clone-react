@@ -16,6 +16,7 @@ type EventsContext = {
   events: Event[]
   addEvent: (event: UnionOmit<Event, "id">) => void
   updateEvent: (id: string, eventDetails: UnionOmit<Event, "id">) => void
+  deleteEvent: (id: string) => void
 }
 
 type EventsProviderProps = {
@@ -39,8 +40,12 @@ export const EventsProvider = ({ children }: EventsProviderProps) => {
     })
   }
 
+  const deleteEvent = (id: string) => {
+    setEvents((e) => e.filter((event) => event.id !== id))
+  }
+
   return (
-    <Context.Provider value={{ events, addEvent, updateEvent }}>
+    <Context.Provider value={{ events, addEvent, updateEvent, deleteEvent }}>
       {children}
     </Context.Provider>
   )

@@ -1,4 +1,12 @@
-import { FormEvent, Fragment, useId, useMemo, useRef, useState } from "react"
+import {
+  FormEvent,
+  Fragment,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { formatDate } from "../utils/formatDate"
 import {
   addMonths,
@@ -10,6 +18,7 @@ import {
   isSameDay,
   isSameMonth,
   isToday,
+  parse,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -167,25 +176,32 @@ const CalendarEvent = ({ event }: { event: Event }) => {
     <>
       <button
         className={cc("event", event.color, event.allDay && "all-day-event")}
+        onClick={() => setIsEditModalOpen(true)}
       >
         {event.allDay ? (
-          <div className="event-name">Short</div>
+          <div className="event-name">{event.name}</div>
         ) : (
           <>
-            <div className="color-dot blue"></div>
-            <div className="event-time">7am</div>
-            <div className="event-name">Event Name</div>
+            <div className={`color-dot ${event.color}`}></div>
+            <div className="event-time">
+              {formatDate(parse(event.startTime, "HH:mm", event.date), {
+                timeStyle: "short",
+              })}
+            </div>
+            <div className="event-name">{event.name}</div>
           </>
         )}
       </button>
       {/* <button className="all-day-event green event">
         <div className="event-name">Long Event Name That Just Keeps Going</div>
-      </button>
-      <button className="event">
-        <div className="color-dot blue"></div>
-        <div className="event-time">7am</div>
-        <div className="event-name">Event Name</div>
       </button> */}
+      <EventFormModal
+        event={event}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={(e) => updateEvent(event.id, e)}
+        onDelete={() => deleteEvent(event.id)}
+      />
     </>
   )
 }
@@ -197,7 +213,7 @@ const EventFormModal = ({
   date,
   ...modalProps
 }: EventFormModalProps) => {
-  const isNew = event === null
+  const isNew = event == null
   const formId = useId()
   const nameRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
