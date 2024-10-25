@@ -8,13 +8,13 @@ type OverFlowContainerProps<T> = {
   getKey: (item: T) => Key
 }
 
-export const OverflowContainer = ({
+export function OverflowContainer<T>({
   className,
   items,
   renderItem,
   renderOverflow,
   getKey,
-}: OverFlowContainerProps<T>) => {
+}: OverFlowContainerProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [overflowAmount, setOverflowAmount] = useState(0)
 
